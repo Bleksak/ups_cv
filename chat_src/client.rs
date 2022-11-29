@@ -57,9 +57,13 @@ fn main() -> Result<(), io::Error> {
     io::stdin().lock().read_line(&mut username).expect("Invalid username");
     username = username.trim().to_owned();
     
-    std::thread::spawn(move|| {
+    let thread = std::thread::spawn(move|| {
         loop {
             if let Some(mut data) = read_all(&mut client_clone) {
+                if data.len() == 0 {
+                    println!("Server shutdown");
+                    break;
+                }
                 data.push('\n' as u8);
                 if let Err(_) = io::stdout().lock().write_all(&data) {
                     println!("Corrupted message");
@@ -70,6 +74,9 @@ fn main() -> Result<(), io::Error> {
     
     loop {
         let mut buf = String::new();
+        if thread.is_finished() {
+            break;
+        }
         if let Ok(_) = io::stdin().lock().read_line(&mut buf) {
             buf = buf.trim().to_owned();
             
@@ -83,4 +90,6 @@ fn main() -> Result<(), io::Error> {
             }
         }
     }
+    
+    Ok(())
 }

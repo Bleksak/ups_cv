@@ -1,0 +1,12 @@
+CRC
+kodovani (manchester..)
+modulace
+pocitani IP
+efektivita prenosu pro okynko, start/stop, async prenos..
+Hammingova vzdalenost (kolik detekuji, kolik opravim)
+
+ISO/OSI model -- koho najdeme na vrstvach, co se prenasi
+(TCP/IP) model -- stejne
+typy DNS zaznamu
+cisla portu: ---- jak najit? v /etc/services
+

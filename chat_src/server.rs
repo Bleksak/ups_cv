@@ -1,5 +1,6 @@
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
+use std::os::unix::prelude::AsRawFd;
 use std::str;
 use std::sync::mpsc::{self, Receiver, Sender};
 
@@ -48,6 +49,15 @@ fn read_all(client: &mut TcpStream) -> Option<Vec<u8>> {
         }
     }
 }
+#[cfg(target_os = "windows")]
+fn sock_fd(stream: &TcpStream) -> i32 {
+    stream.as_raw_socket() as i32
+}
+
+#[cfg(target_os = "linux")]
+fn sock_fd(stream: &TcpStream) -> i32 {
+    stream.as_raw_fd()
+}
 
 fn main() -> Result<(), io::Error> {
     let server_socket = TcpListener::bind("127.0.0.1:2000")?;
@@ -80,6 +90,7 @@ fn main() -> Result<(), io::Error> {
         }
 
         let mut disconnect = vec![];
+        let mut ignore = vec![];
         let mut broadcast = vec![];
 
         for (index, client) in clients.iter_mut().enumerate() {
@@ -91,6 +102,7 @@ fn main() -> Result<(), io::Error> {
                 } else {
                     if let Ok(message) = str::from_utf8(&data) {
                         println!("{}", message);
+                        ignore.push(sock_fd(client));
                         broadcast.push(data);
                     }
                 }
@@ -101,8 +113,8 @@ fn main() -> Result<(), io::Error> {
             clients.remove(*client);
         }
 
-        for message in broadcast {
-            for client in clients.iter_mut() {
+        for (message,ignore) in broadcast.iter().zip(ignore.iter()) {
+            for client in clients.iter_mut().filter(|a | a.as_raw_fd() != *ignore) {
                 if let Err(err) = client.write_all(&message) {
                     println!("Failed to send message to client: {}", err);
                 }
@@ -112,3 +124,4 @@ fn main() -> Result<(), io::Error> {
         std::thread::sleep(std::time::Duration::from_millis(20));
     }
 }
+
